@@ -1,11 +1,11 @@
 {
-  "name": "nodebb-plugin-sso-oauth",
+  "name": "nodebb-plugin-sso-oauth-wtsncomm",
   "version": "0.2.4",
-  "description": "NodeBB Generic OAuth SSO",
+  "description": "NodeBB OAuth SSO for NodeBB to oauth against Keystone",
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/julianlam/nodebb-plugin-sso-oauth"
+    "url": "https://github.com/havasnewyork/nodebb-plugin-sso-oauth-wtsncomm"
   },
   "keywords": [
     "nodebb",
@@ -18,12 +18,12 @@
     "registration"
   ],
   "author": {
-    "name": "Julian Lam",
-    "email": "julian@nodebb.org"
+    "name": "Kevin Haggerty",
+    "email": "kevin.haggerty@havasww.com"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/julianlam/nodebb-plugin-sso-oauth/issues"
+    "url": "https://github.com/havasnewyork/nodebb-plugin-sso-oauth-wtsncomm/issues"
   },
   "readme": "",
   "readmeFilename": "README.md",
