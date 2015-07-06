@@ -163,30 +163,7 @@
 
 		// Find out what is available by uncommenting this line:
 		console.log(data);
-		/*
-		{ profile: 
-		   { _id: '559557f2f90c5d0f4149eb51',
-		     password: '$2a$10$VN59kG92A6zWhR3dM0sBlu7bhrFvecRFFB8Szzt3pgfR2rfZQ.ptm',
-		     email: 'kehagger@us.ibm.com',
-		     __v: 0,
-		     facebook: '',
-		     isAdmin: true,
-		     isIbmContact: false,
-		     isPartnerAdmin: false,
-		     linkedIn: '',
-		     phone: '',
-		     title: '',
-		     twitter: '',
-		     location: 
-		      { address_1: '',
-		        address_2: '',
-		        city: '',
-		        country: '',
-		        state: '',
-		        zip: '' },
-		     avatar: { description: null },
-		     name: { last: 'Haggerty', first: 'Kevin' } } }
-		*/
+		
 		// console.log('checking serlializers:', passport._serializers);
 		var profile = {};
 		profile.id = data.profile._id;
