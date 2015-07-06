@@ -16,6 +16,10 @@
 		Step 4: If all goes well, you'll be able to login/register via your OAuth endpoint credentials.
 	*/
 
+	var https = require('https');
+	https.globalAgent.options.rejectUnauthorized = false; // developer self signed cert workaround
+	console.log('https.globalAgent', https.globalAgent);
+
 	var User = module.parent.require('./user'),
 		Groups = module.parent.require('./groups'),
 		meta = module.parent.require('./meta'),
@@ -27,9 +31,11 @@
 		winston = module.parent.require('winston'),
 		async = module.parent.require('async'),
 
+		oauthConfigs = nconf.get('oauth2keystone'),
+
 		constants = Object.freeze({
-			type: '',	// Either 'oauth' or 'oauth2'
-			name: '',	// Something unique to your OAuth provider in lowercase, like "github", or "nodebb"
+			type: 'oauth2',	// Either 'oauth' or 'oauth2'
+			name: 'ibm',	// Something unique to your OAuth provider in lowercase, like "github", or "nodebb"
 			oauth: {
 				requestTokenURL: '',
 				accessTokenURL: '',
@@ -38,12 +44,13 @@
 				consumerSecret: ''
 			},
 			oauth2: {
-				authorizationURL: '',
-				tokenURL: '',
-				clientID: '',
-				clientSecret: ''
+				authorizationURL: oauthConfigs.server + 'oauth/authorise',
+				tokenURL: oauthConfigs.server + 'oauth/token',
+				clientID: oauthConfigs.clientID,
+				clientSecret: oauthConfigs.clientSecret
 			},
-			userRoute: ''	// This is the address to your app's "user profile" API endpoint (expects JSON)
+			scope: "profile",
+			userRoute: oauthConfigs.server + 'oauth/profile',	// This is the address to your app's "user profile" API endpoint (expects JSON)
 		}),
 		configOk = false,
 		OAuth = {}, passportOAuth, opts;
@@ -61,11 +68,12 @@
 	OAuth.getStrategy = function(strategies, callback) {
 		if (configOk) {
 			passportOAuth = require('passport-oauth')[constants.type === 'oauth' ? 'OAuthStrategy' : 'OAuth2Strategy'];
-
+			// console.log('a strategy oauth:', passportOAuth);
+			// console.log('a strategy oauth:', passportOAuth);
 			if (constants.type === 'oauth') {
 				// OAuth options
 				opts = constants.oauth;
-				opts.callbackURL = nconf.get('url') + '/auth/' + constants.name + '/callback';
+				opts.callbackURL = nconf.get('NODEBB_SSO_CB_URL') + '/auth/' + constants.name + '/callback';
 
 				passportOAuth.Strategy.prototype.userProfile = function(token, secret, params, done) {
 					this._oauth.get(constants.userRoute, token, secret, function(err, body, res) {
@@ -86,7 +94,7 @@
 			} else if (constants.type === 'oauth2') {
 				// OAuth 2 options
 				opts = constants.oauth2;
-				opts.callbackURL = nconf.get('url') + '/auth/' + constants.name + '/callback';
+				opts.callbackURL = nconf.get('NODEBB_SSO_CB_URL') + '/auth/' + constants.name + '/callback';
 
 				passportOAuth.Strategy.prototype.userProfile = function(accessToken, done) {
 					this._oauth2.get(constants.userRoute, accessToken, function(err, body, res) {
@@ -105,8 +113,7 @@
 					});
 				};
 			}
-
-			passport.use(constants.name, new passportOAuth(opts, function(token, secret, profile, done) {
+			var strategyInstance = new passportOAuth(opts, function(token, secret, profile, done) {
 				OAuth.login({
 					oAuthid: profile.id,
 					handle: profile.displayName,
@@ -116,9 +123,24 @@
 					if (err) {
 						return done(err);
 					}
+					console.log('check user:', user);
 					done(null, user);
 				});
-			}));
+			});
+			// console.log('strategyInstance:', strategyInstance);
+			// console.log('strategyInstance:', strategyInstance._oauth2.ignoreCertificateVerification);
+
+			passport.use(constants.name, strategyInstance);
+			
+			// passport.serializeUser(function(user, done) {
+			// 	done(null, user.uid);
+			// });
+
+			// passport.deserializeUser(function(uid, done) {
+			// 	done(null, {
+			// 		uid: uid
+			// 	});
+			// });
 
 			strategies.push({
 				name: constants.name,
@@ -140,24 +162,49 @@
 		// Everything else is optional.
 
 		// Find out what is available by uncommenting this line:
-		// console.log(data);
-
+		console.log(data);
+		/*
+		{ profile: 
+		   { _id: '559557f2f90c5d0f4149eb51',
+		     password: '$2a$10$VN59kG92A6zWhR3dM0sBlu7bhrFvecRFFB8Szzt3pgfR2rfZQ.ptm',
+		     email: 'kehagger@us.ibm.com',
+		     __v: 0,
+		     facebook: '',
+		     isAdmin: true,
+		     isIbmContact: false,
+		     isPartnerAdmin: false,
+		     linkedIn: '',
+		     phone: '',
+		     title: '',
+		     twitter: '',
+		     location: 
+		      { address_1: '',
+		        address_2: '',
+		        city: '',
+		        country: '',
+		        state: '',
+		        zip: '' },
+		     avatar: { description: null },
+		     name: { last: 'Haggerty', first: 'Kevin' } } }
+		*/
+		// console.log('checking serlializers:', passport._serializers);
 		var profile = {};
-		profile.id = data.id;
-		profile.displayName = data.name;
-		profile.emails = [{ value: data.email }];
-
+		profile.id = data.profile._id;
+		profile.displayName = data.profile.name.first + " " + data.profile.name.last;
+		profile.emails = [{ value: data.profile.email }];
+		console.log('saving profile:', profile);
 		// Do you want to automatically make somebody an admin? This line might help you do that...
 		// profile.isAdmin = data.isAdmin ? true : false;
 
 		// Delete or comment out the next TWO (2) lines when you are ready to proceed
-		process.stdout.write('===\nAt this point, you\'ll need to customise the above section to id, displayName, and emails into the "profile" object.\n===');
-		return callback(new Error('Congrats! So far so good -- please see server log for details'));
+		// process.stdout.write('===\nAt this point, you\'ll need to customise the above section to id, displayName, and emails into the "profile" object.\n===');
+		// return callback(new Error('Congrats! So far so good -- please see server log for details'));
 
 		callback(null, profile);
 	}
 
 	OAuth.login = function(payload, callback) {
+		console.log('OAuth.login:', payload);
 		OAuth.getUidByOAuthid(payload.oAuthid, function(err, uid) {
 			if(err) {
 				return callback(err);
@@ -170,6 +217,7 @@
 				});
 			} else {
 				// New User
+				console.log('creating new user:', payload);
 				var success = function(uid) {
 					// Save provider-specific information to the user
 					User.setUserField(uid, constants.name + 'Id', payload.oAuthid);
@@ -194,6 +242,7 @@
 					}
 
 					if (!uid) {
+						console.log('create go:', payload.handle, payload.email)
 						User.create({
 							username: payload.handle,
 							email: payload.email
@@ -201,7 +250,7 @@
 							if(err) {
 								return callback(err);
 							}
-
+							console.log('created:', err, uid);
 							success(uid);
 						});
 					} else {
@@ -213,6 +262,7 @@
 	};
 
 	OAuth.getUidByOAuthid = function(oAuthid, callback) {
+
 		db.getObjectField(constants.name + 'Id:uid', oAuthid, function(err, uid) {
 			if (err) {
 				return callback(err);
