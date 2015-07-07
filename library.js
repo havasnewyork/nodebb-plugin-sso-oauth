@@ -16,6 +16,8 @@
 		Step 4: If all goes well, you'll be able to login/register via your OAuth endpoint credentials.
 	*/
 
+	// if dev environment or stage - TODO remove for production 
+	// avoid self-signed SSL errors with oauth sequence
 	var https = require('https');
 	https.globalAgent.options.rejectUnauthorized = false; // developer self signed cert workaround
 	console.log('https.globalAgent', https.globalAgent);
@@ -31,6 +33,7 @@
 		winston = module.parent.require('winston'),
 		async = module.parent.require('async'),
 
+		// make sure these are set in the config.json file under the oauth2keystone object: server, clientID, clientSecret
 		oauthConfigs = nconf.get('oauth2keystone'),
 
 		constants = Object.freeze({
@@ -118,7 +121,8 @@
 					oAuthid: profile.id,
 					handle: profile.displayName,
 					email: profile.emails[0].value,
-					isAdmin: profile.isAdmin
+					isAdmin: profile.isAdmin,
+					picture: profile.picture
 				}, function(err, user) {
 					if (err) {
 						return done(err);
@@ -162,14 +166,15 @@
 		// Everything else is optional.
 
 		// Find out what is available by uncommenting this line:
-		console.log(data);
-		
+		// console.log(data);
+
 		// console.log('checking serlializers:', passport._serializers);
 		var profile = {};
 		profile.id = data.profile._id;
 		profile.displayName = data.profile.name.first + " " + data.profile.name.last;
 		profile.emails = [{ value: data.profile.email }];
-		console.log('saving profile:', profile);
+		profile.picture = data.profile.avatar.url;
+		// console.log('saving profile:', profile);
 		// Do you want to automatically make somebody an admin? This line might help you do that...
 		// profile.isAdmin = data.isAdmin ? true : false;
 
@@ -189,12 +194,14 @@
 
 			if (uid !== null) {
 				// Existing User
+				// console.log('is existing user...', uid, payload);
+				OAuth.updateUserProfile(uid, payload);
 				callback(null, {
 					uid: uid
 				});
 			} else {
 				// New User
-				console.log('creating new user:', payload);
+				// console.log('creating new user:', payload);
 				var success = function(uid) {
 					// Save provider-specific information to the user
 					User.setUserField(uid, constants.name + 'Id', payload.oAuthid);
@@ -219,7 +226,7 @@
 					}
 
 					if (!uid) {
-						console.log('create go:', payload.handle, payload.email)
+						// console.log('user create go:', payload);
 						User.create({
 							username: payload.handle,
 							email: payload.email
@@ -227,16 +234,25 @@
 							if(err) {
 								return callback(err);
 							}
-							console.log('created:', err, uid);
+							// console.log('created:', err, uid);
 							success(uid);
 						});
 					} else {
-						success(uid); // Existing account -- merge
+						// console.log("TODO merge oauth login profile with user:", payload);
+						OAuth.updateUserProfile(uid, payload);
+						success(uid); // Existing account -- merge that's a good idea hmmmm
 					}
 				});
 			}
 		});
 	};
+
+	OAuth.updateUserProfile = function(uid, payload) {
+		if (payload.picture) {
+			User.setUserFields(uid, {uploadedpicture: payload.picture, picture: payload.picture});	
+		}
+		
+	}
 
 	OAuth.getUidByOAuthid = function(oAuthid, callback) {
 
