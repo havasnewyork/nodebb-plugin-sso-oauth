@@ -174,6 +174,10 @@
 		profile.displayName = data.profile.name.first + " " + data.profile.name.last;
 		profile.emails = [{ value: data.profile.email }];
 		profile.picture = data.profile.avatar.url;
+		if (profile.picture.indexOf('http') !== 0) {
+			// prepend https: if not present
+			profile.picture = "https:" + profile.picture;
+		}
 		// console.log('saving profile:', profile);
 		// Do you want to automatically make somebody an admin? This line might help you do that...
 		// profile.isAdmin = data.isAdmin ? true : false;
