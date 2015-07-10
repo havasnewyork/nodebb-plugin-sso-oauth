@@ -168,13 +168,15 @@
 		// Find out what is available by uncommenting this line:
 		// console.log(data);
 
-		// console.log('checking serlializers:', passport._serializers);
+		console.log('oauth profile:', data);
 		var profile = {};
 		profile.id = data.profile._id;
 		profile.displayName = data.profile.name.first + " " + data.profile.name.last;
 		profile.emails = [{ value: data.profile.email }];
 		profile.picture = data.profile.avatar.url;
+		console.log(typeof data.profile.avatar);
 		if (data.profile.avatar) {
+			console.log('check profile avatar:', data.profile.avatar);
 			profile.picture = data.profile.avatar.url;
 			if (profile.picture) {
 				if (profile.picture.indexOf('http') !== 0) {
