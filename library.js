@@ -173,7 +173,6 @@
 		profile.id = data.profile._id;
 		profile.displayName = data.profile.name.first + " " + data.profile.name.last;
 		profile.emails = [{ value: data.profile.email }];
-		profile.picture = data.profile.avatar.url;
 		console.log(typeof data.profile.avatar);
 		if (data.profile.avatar) {
 			console.log('check profile avatar:', data.profile.avatar);
