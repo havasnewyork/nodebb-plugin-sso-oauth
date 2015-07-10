@@ -174,10 +174,13 @@
 		profile.displayName = data.profile.name.first + " " + data.profile.name.last;
 		profile.emails = [{ value: data.profile.email }];
 		profile.picture = data.profile.avatar.url;
-		if (profile.picture) {
-			if (profile.picture.indexOf('http') !== 0) {
-				// prepend https: if not present
-				profile.picture = "https:" + profile.picture;
+		if (data.profile.avatar) {
+			profile.picture = data.profile.avatar.url;
+			if (profile.picture) {
+				if (profile.picture.indexOf('http') !== 0) {
+					// prepend https: if not present
+					profile.picture = "https:" + profile.picture;
+				}	
 			}
 		}
 		
